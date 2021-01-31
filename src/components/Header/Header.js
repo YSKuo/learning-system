@@ -1,45 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
-import { Badge, Button, Menu as AntMenu, Drawer, Grid } from 'antd';
+import { Link, useHistory, useLocation } from 'react-router-dom';
+import { Badge, Button, Menu, Drawer, Grid, Input } from 'antd';
 import { MEDIA_QUERY_TABLET } from '../../constants/breakpoint';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, selectUser } from '../../redux/reducers/userReducer';
-import { selectCartList, getCartList } from '../../redux/reducers/cartReducer';
+import { selectCartList } from '../../redux/reducers/cartReducer';
 import { ShoppingCartOutlined } from '@ant-design/icons';
+import LOGO from '../../img/LOGO.png';
 
 const { useBreakpoint } = Grid;
-
-const Menu = styled(AntMenu)`
-  font-size: 18px;
+const { Search } = Input;
+const StyledMenu = styled(Menu)`
+  font-size: 16px;
   background: transparent;
   border: none;
 `;
-
 const HeaderContainer = styled.div`
-  background: ${(props) => props.theme.colors.primary.main};
+  background: white;
   color: ${(props) => props.theme.colors.primary.text};
-  padding: 0 20px;
-  border-bottom: solid 1px #e8e8e8;
-  box-shadow: 0 0 30px #f3f1f1;
+  padding: 5px 15px;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
-  z-index: 1;
+  z-index: 9;
   top: 0;
 `;
-
 const Logo = styled(Link)`
-  color: ${(props) => props.theme.colors.primary.text};
-  :hover {
-    color: ${(props) => props.theme.colors.primary.text};
-  }
-  font-size: 32px;
-  width: 180px;
+  width: 150px;
   text-align: center;
+  & > img {
+    height: 52px;
+  }
 `;
-
 const NavContainer = styled.div`
   display: flex;
   justify-content: space-between;
@@ -48,7 +43,7 @@ const NavContainer = styled.div`
     flex: 1;
   }
 `;
-
+// RWD 隱藏切換
 const NavToggleGroup = styled.div`
   display: none;
   ${MEDIA_QUERY_TABLET} {
@@ -59,7 +54,6 @@ const NavRightPart = styled.div`
   display: flex;
   align-items: center;
 `;
-
 const NavToggler = styled(Button)`
   height: 32px;
   padding: 6px;
@@ -91,7 +85,6 @@ const NavTogglerBody = styled.div`
     bottom: -6px;
   }
 `;
-
 const CartIcon = styled(ShoppingCartOutlined)`
   color: ${(props) => props.theme.colors.primary.text};
   font-size: 24px;
@@ -100,31 +93,65 @@ const CartIcon = styled(ShoppingCartOutlined)`
   }
 `;
 
-const LeftMenu = () => {
+const LeftMenu = ({
+  searchValue,
+  setSearchValue,
+  onSearch,
+  handleClose,
+  currentKey,
+}) => {
   const { md } = useBreakpoint();
   return (
-    <Menu mode={md ? "horizontal" : "inline"}>
-      <Menu.Item key="searchCourse">
-        <Link to="/searchCourse">搜尋課程</Link>
+    <StyledMenu
+      mode={md ? 'horizontal' : 'inline'}
+      onClick={handleClose}
+      selectedKeys={currentKey}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <Search
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.value)}
+        placeholder="搜尋課程"
+        onSearch={onSearch}
+        style={{ width: 150 }}
+      />
+      <Menu.Item key="courses">
+        <Link to="/courses">課程列表</Link>
       </Menu.Item>
-    </Menu>
+    </StyledMenu>
   );
 };
 
-const RightMenu = ({ user, handleLogout, handleClose }) => {
-  console.log(user);
+const RightMenu = ({ user, handleLogout, handleClose, currentKey }) => {
   const { md } = useBreakpoint();
   return (
-    <Menu mode={md ? "horizontal" : "inline"} onClick={handleClose}>
+    <StyledMenu
+      mode={md ? 'horizontal' : 'inline'}
+      onClick={handleClose}
+      selectedKeys={currentKey}
+    >
       {user && (
         <>
-          <Menu.Item key="myCourse">
-            <Link to="/myCourse">我的課程</Link>
+          {user.authTypeId === 1 && (
+            <Menu.Item key="teacher-apply">
+              <Link to="/teacher-apply">申請開課</Link>
+            </Menu.Item>
+          )}
+          <Menu.Item key="my-course">
+            <Link to="/my-course">我的課程</Link>
           </Menu.Item>
           <Menu.Item key="myAccount">
             <Link to="/me">帳號設定</Link>
           </Menu.Item>
-          {user.auth_type === 3 && (
+          {user.authTypeId === 2 && (
+            <Menu.Item key="teacher">
+              <Link to="/teacher">老師後台</Link>
+            </Menu.Item>
+          )}
+          {user.authTypeId === 3 && (
             <Menu.Item key="console">
               <Link to="/console">管理後台</Link>
             </Menu.Item>
@@ -136,39 +163,55 @@ const RightMenu = ({ user, handleLogout, handleClose }) => {
       )}
       {!user && (
         <>
-          <Menu.Item key="mail">
+          <Menu.Item key="register">
             <Link to="/register">註冊</Link>
           </Menu.Item>
-          <Menu.Item key="app">
+          <Menu.Item key="login">
             <Link to="/login">登入</Link>
           </Menu.Item>
         </>
       )}
-    </Menu>
+    </StyledMenu>
   );
 };
 
+function getCurrentKey(pathname) {
+  if (pathname.indexOf('/courses') === 0) return 'courses';
+  if (pathname.indexOf('/teacher-apply') === 0) return 'teacher-apply';
+  if (pathname.indexOf('/my-course') === 0) return 'my-course';
+  if (pathname.indexOf('/me') === 0) return 'me';
+  if (pathname.indexOf('/teacher') === 0) return 'teacher';
+  if (pathname.indexOf('/console') === 0) return 'console';
+  if (pathname.indexOf('/register') === 0) return 'register';
+  if (pathname.indexOf('/login') === 0) return 'login';
+  return 'index';
+}
+
 export default function Header() {
   const dispatch = useDispatch();
+  const history = useHistory();
+  const location = useLocation();
+  const pathname = location.pathname;
   const cartList = useSelector(selectCartList);
   const user = useSelector(selectUser);
-  const location = useLocation();
-  console.log('now location', location)
+  const [searchValue, setSearchValue] = useState('');
+  const [currentKey, setCurrentKey] = useState('');
 
-  // component mount 時執行(初始化)
   useEffect(() => {
-    if (user) {
-      dispatch(getCartList());
+    console.log('getKey');
+    setCurrentKey(getCurrentKey(pathname))
+  }, [pathname]);
+
+  const onSearch = (value) => {
+    if (value) {
+      setSearchValue('');
+      history.push(`/courses?keyword=${value}`);
     }
-    // unmount 時先 clean up 避免下次回來時因為仍有舊資料而短暫顯示
-    return () => {};
-  }, [user, dispatch]);
+  };
 
   const handleLogout = () => {
     dispatch(logout());
   };
-  console.log("render header");
-  // component mount 時執行(初始化)
 
   const [state, setState] = useState({ visible: false });
 
@@ -184,17 +227,22 @@ export default function Header() {
   };
 
   return (
-    <>
-    {!location.pathname.includes('預覽課程') && (
-      <HeaderContainer>
-      <Logo to="/courseList">Teach Table</Logo>
+    <HeaderContainer>
+      <Logo to="/">
+        <img src={LOGO} alt="img not found" />
+      </Logo>
       <NavContainer>
         <NavToggleGroup>
-          <LeftMenu />
+          <LeftMenu
+            searchValue={searchValue}
+            onSearch={onSearch}
+            setSearchValue={setSearchValue}
+            currentKey={currentKey}
+          />
         </NavToggleGroup>
         <NavRightPart>
-          <Badge count={cartList.length} size="small" offset={[10]}>
-            <Link to="/cartList">
+          <Badge count={cartList.length} offset={[10]}>
+            <Link to="/cart">
               <CartIcon />
             </Link>
           </Badge>
@@ -203,6 +251,7 @@ export default function Header() {
               user={user}
               cartList={cartList}
               handleLogout={handleLogout}
+              currentKey={currentKey}
             />
           </NavToggleGroup>
         </NavRightPart>
@@ -210,23 +259,28 @@ export default function Header() {
           <NavTogglerBody />
         </NavToggler>
         <Drawer
-          title="Teach Table"
+          title="GaGiO"
           placement="top"
           closable={false}
           onClose={handleClose}
           visible={state.visible}
         >
-          <LeftMenu />
+          <LeftMenu
+            searchValue={searchValue}
+            onSearch={onSearch}
+            setSearchValue={setSearchValue}
+            handleClose={handleClose}
+            currentKey={currentKey}
+          />
           <RightMenu
             user={user}
             cartList={cartList}
             handleLogout={handleLogout}
             handleClose={handleClose}
+            currentKey={currentKey}
           />
         </Drawer>
       </NavContainer>
     </HeaderContainer>
-    )}
-    </>
   );
 }
